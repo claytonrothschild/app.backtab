@@ -1,0 +1,189 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("POSTGRES_PRISMA_URL") // uses connection pooling
+  directUrl         = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
+  shadowDatabaseUrl = env("POSTGRES_URL_NON_POOLING") // used for migrations
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["jsonProtocol"]
+}
+
+model Account {
+  id                       String  @id
+  userId                   String
+  type                     String
+  provider                 String
+  providerAccountId        String
+  refresh_token            String?
+  refresh_token_expires_in Int?
+  access_token             String?
+  expires_at               Int?
+  token_type               String?
+  scope                    String?
+  id_token                 String?
+  session_state            String?
+  oauth_token_secret       String?
+  oauth_token              String?
+  user                     User    @relation(fields: [userId], references: [id])
+}
+
+model Session {
+  id           String   @id
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+}
+
+model Post {
+  id            String   @id
+  title         String?
+  description   String?
+  content       String?
+  slug          String
+  image         String?
+  imageBlurhash String?
+  createdAt     DateTime
+  updatedAt     DateTime
+  published     Boolean
+  site          Site?    @relation(fields: [siteId], references: [id])
+  siteId        String?
+  user          User?    @relation(fields: [userId], references: [id])
+  userId        String?
+}
+
+model User {
+  id            String    @id
+  name          String?
+  username      String?
+  gh_username   String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime
+  updatedAt     DateTime
+  plan          Plan?     @relation(fields: [planId], references: [id])
+  planId        String?
+  accounts      Account[]
+  sessions      Session[]
+  ownedSites    Site[]    @relation("OwnedSites")
+  posts         Post[]
+  products      Product[]
+  backtabs      Backtab[]
+  Site          Site?     @relation(fields: [siteId], references: [id])
+  siteId        String?
+}
+
+model Product {
+  id           String    @id
+  name         String
+  price        Float
+  feature      String
+  baseId       String?
+  pricePerUnit Float
+  costPerUnit  Float
+  siteId       String?
+  site         Site?     @relation(fields: [siteId], references: [id])
+  User         User?     @relation(fields: [userId], references: [id])
+  userId       String?
+  Backtab      Backtab[]
+}
+
+model Plan {
+  id           String    @id
+  name         String
+  price        Float
+  features     Json
+  baseId       String?
+  pricePerUnit Float
+  costPerUnit  Float
+  siteId       String?
+  site         Site?     @relation(fields: [siteId], references: [id])
+  User         User[]
+  Backtab      Backtab[]
+}
+
+model Backtab {
+  id                  String   @id
+  name                String
+  domain              String
+  interval            String
+  textA               String
+  textB               String
+  faviconA            String
+  faviconB            String
+  unlockedByPlan      Plan?    @relation(fields: [unlockedByPlanId], references: [id])
+  unlockedByPlanId    String?
+  unlockedByProduct   Product? @relation(fields: [unlockedByProductId], references: [id])
+  unlockedByProductId String?
+  baseScript          String
+  siteId              String
+  site                Site     @relation(fields: [siteId], references: [id])
+  user                User?    @relation(fields: [userId], references: [id])
+  userId              String
+}
+
+model BaseProduct {
+  id           String @id
+  name         String
+  price        Float
+  feature      String
+  unit         String
+  pricePerUnit Float
+  costPerUnit  Float
+  type         String
+}
+
+model BasePlan {
+  id           String @id
+  name         String
+  price        Float
+  features     Json
+  unit         String
+  pricePerUnit Float
+  costPerUnit  Float
+}
+
+model Scripts {
+  id                 String @id
+  name               String
+  jsEmbedCode        String
+  wordPressEmbedCode String
+  shopifyEmbedCode   String
+}
+
+model Site {
+  id            String    @id
+  name          String
+  description   String?
+  logo          String?
+  font          String
+  image         String?
+  imageBlurhash String?
+  subdomain     String?   @unique
+  customDomain  String?   @unique
+  message404    String?
+  createdAt     DateTime
+  updatedAt     DateTime
+  ownerId       String
+  parentSiteId  String?
+  parentSite    Site?     @relation("ParentChild", fields: [parentSiteId], references: [id])
+  childrenSites Site[]    @relation("ParentChild")
+  posts         Post[]
+  backtabs      Backtab[]
+  ownedBy       User      @relation("OwnedSites", fields: [ownerId], references: [id])
+  members       User[]
+  Product       Product[]
+  Plan          Plan[]
+}
